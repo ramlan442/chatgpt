@@ -1,6 +1,6 @@
 {
   "name": "@ramlan442/openai",
-  "version": "1.0.0",
+  "version": "1.0.0-preview3",
   "description": "openai api, chatgpt api",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -9,6 +9,7 @@
   ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "prepublishOnly": "npm run build",
     "prepare": "husky install",
     "build": "tsc"
   },
