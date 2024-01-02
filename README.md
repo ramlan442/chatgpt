@@ -5,7 +5,12 @@ library to use api from openai in nodejs
 ## Installation
 
 ```bash
-  npm i @ramlan442/openai
+
+  npm i github:ramlan442/openai # latest from github
+
+  # or
+
+  npm i @ramlan442/openai # via npm
 ```
 
 ## Usage/Examples
