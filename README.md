@@ -31,6 +31,7 @@ import OpenAi from "@ramlan442/openai";
   - [x] Stream
   - [ ] Function Call
   - [ ] Split Text on Stream
+  - [ ] Support Custom Domain, Body, etc..
   - [ ] Previous Chat (continue conversation)
 - [ ] Transcribe (convert audio to text)
 

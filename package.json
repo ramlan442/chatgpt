@@ -9,7 +9,7 @@
   ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "prepublishOnly": "npm run build",
+    "prepack": "npm run build",
     "prepare": "husky install",
     "build": "tsc"
   },
