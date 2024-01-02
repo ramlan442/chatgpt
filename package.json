@@ -1,15 +1,21 @@
 {
-  "name": "chatgpt",
+  "name": "@ramlan442/openai",
   "version": "1.0.0",
-  "description": "chatgpt api",
-  "main": "index.js",
+  "description": "openai api, chatgpt api",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "build": "tsc"
   },
+  "type": "module",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ramlan442/chatgpt.git"
+    "url": "git+https://github.com/ramlan442/openai.git"
   },
   "keywords": [
     "chatgpt",
@@ -19,12 +25,12 @@
   "author": "ramlan442",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/ramlan442/chatgpt/issues"
+    "url": "https://github.com/ramlan442/openai/issues"
   },
   "lint-staged": {
     "**/*": "prettier --write --ignore-unknown"
   },
-  "homepage": "https://github.com/ramlan442/chatgpt#readme",
+  "homepage": "https://github.com/ramlan442/openai#readme",
   "devDependencies": {
     "@types/node": "^20.10.6",
     "@typescript-eslint/eslint-plugin": "^6.17.0",
@@ -37,9 +43,11 @@
     "eslint-plugin-prettier": "^5.1.2",
     "husky": "^8.0.0",
     "lint-staged": "^15.2.0",
-    "prettier": "3.1.1"
+    "prettier": "3.1.1",
+    "typescript": "^5.3.3"
   },
   "dependencies": {
+    "dotenv": "^16.3.1",
     "eventsource-parser": "^1.1.1",
     "js-tiktoken": "^1.0.8"
   }
