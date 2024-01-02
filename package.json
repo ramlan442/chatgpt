@@ -1,0 +1,46 @@
+{
+  "name": "chatgpt",
+  "version": "1.0.0",
+  "description": "chatgpt api",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prepare": "husky install"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ramlan442/chatgpt.git"
+  },
+  "keywords": [
+    "chatgpt",
+    "openai",
+    "api"
+  ],
+  "author": "ramlan442",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ramlan442/chatgpt/issues"
+  },
+  "lint-staged": {
+    "**/*": "prettier --write --ignore-unknown"
+  },
+  "homepage": "https://github.com/ramlan442/chatgpt#readme",
+  "devDependencies": {
+    "@types/node": "^20.10.6",
+    "@typescript-eslint/eslint-plugin": "^6.17.0",
+    "@typescript-eslint/parser": "^6.17.0",
+    "eslint": "^8.2.0",
+    "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-config-airbnb-typescript": "^17.1.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-import": "^2.29.1",
+    "eslint-plugin-prettier": "^5.1.2",
+    "husky": "^8.0.0",
+    "lint-staged": "^15.2.0",
+    "prettier": "3.1.1"
+  },
+  "dependencies": {
+    "eventsource-parser": "^1.1.1",
+    "js-tiktoken": "^1.0.8"
+  }
+}
