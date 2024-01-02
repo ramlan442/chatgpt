@@ -8,8 +8,6 @@ module.exports = {
     "airbnb-typescript/base",
     "plugin:import/recommended",
     "plugin:import/typescript",
-    "eslint:recommended",
-    "plugin:@typescript-eslint/recommended",
     "prettier",
   ],
   overrides: [
@@ -31,7 +29,6 @@ module.exports = {
   },
   plugins: ["@typescript-eslint", "import", "prettier"],
   rules: {
-    indent: ["error", 4],
     "no-console": "off",
     "import/no-extraneous-dependencies": [
       "error",
