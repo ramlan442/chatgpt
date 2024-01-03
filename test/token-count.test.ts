@@ -5,18 +5,14 @@ describe("prediction total count", () => {
 
   test("normal text", async () => {
     const chat = await openai.chatCompletions("halo");
-    expect(openai.PROMPT_TOKEN).toBeGreaterThanOrEqual(
-      chat.usage?.prompt_tokens!,
-    );
+    expect(openai.PROMPT_TOKEN).toBe(chat.usage?.prompt_tokens!);
   });
 
   test("text question", async () => {
     const chat = await openai.chatCompletions(
       "bagaimana cara mengatasi kesepian?",
     );
-    expect(openai.PROMPT_TOKEN).toBeGreaterThanOrEqual(
-      chat.usage?.prompt_tokens!,
-    );
+    expect(openai.PROMPT_TOKEN).toBe(chat.usage?.prompt_tokens!);
   }, 60_000);
 
   test("with function", async () => {
@@ -38,8 +34,6 @@ describe("prediction total count", () => {
       ],
     });
     console.log(chat.choices[0].message.tool_calls);
-    expect(openai.PROMPT_TOKEN).toBeGreaterThanOrEqual(
-      chat.usage?.prompt_tokens!,
-    );
+    expect(openai.PROMPT_TOKEN).toBe(chat.usage?.prompt_tokens!);
   });
 });
