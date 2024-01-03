@@ -1,9 +1,15 @@
 import FormData from "form-data";
 import axios from "axios";
+import { promptTokensEstimate } from "openai-chat-tokens";
+import type OpenAI from "openai";
 import { ErrorMessage, fetchSSE } from "./utils";
 import "dotenv/config";
 
 class OpenAi {
+  PROMPT_TOKEN = 0;
+
+  private MAX_TOKEN = 4000;
+
   private BASE_URL = "https://api.openai.com";
 
   private CHATGPT_MODEL = "gpt-3.5-turbo-1106";
@@ -31,45 +37,57 @@ class OpenAi {
       model,
       endpoint,
       onMessage,
+      tools,
     }: {
       headers?: any;
-      model?: string;
+      model?: OpenAI.Chat.ChatCompletionCreateParams["model"];
       endpoint?: string;
+      tools?: Array<OpenAI.ChatCompletionTool>;
       onMessage?: (data: any) => void;
     } = {},
-  ) {
-    /**
-     * //TODO
-     * [chat] save previous chat
-     * [token] calc token
-     * [improve] chat stream
-     */
+  ): Promise<OpenAI.ChatCompletion> {
     const chatUrl = endpoint || `${this.BASE_URL}/v1/chat/completions`;
     const useStream = !!onMessage;
-    let response;
-    const body = {
-      max_tokens: 1000, // TODO ~token
+    const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+      {
+        role: "system",
+        content: this.SYSTEM_MESSAGE,
+      },
+      {
+        role: "user",
+        content: text,
+      },
+    ];
+
+    this.PROMPT_TOKEN = promptTokensEstimate({ messages, tools });
+
+    const MAX_TOKENS = Math.max(
+      1,
+      Math.min(
+        this.PROMPT_TOKEN < this.MAX_TOKEN
+          ? this.MAX_TOKEN - this.PROMPT_TOKEN
+          : 1000,
+        this.MAX_TOKEN,
+      ),
+    );
+
+    let response: OpenAI.ChatCompletion;
+    const body: OpenAI.ChatCompletionCreateParams = {
+      messages,
       model: model || this.CHATGPT_MODEL,
-      messages: [
-        {
-          role: "system",
-          content: this.SYSTEM_MESSAGE,
-        },
-        {
-          role: "user",
-          content: text,
-        },
-      ],
+      max_tokens: MAX_TOKENS,
+      tools,
       stream: useStream,
     };
 
     if (useStream) {
-      fetchSSE(chatUrl, {
+      await fetchSSE(chatUrl, {
         onMessage: (d) => onMessage?.(d),
         body: JSON.stringify(body),
         method: "POST",
         headers: headers || this.DEFAULT_HEADERS,
       });
+      response = "" as any;
     } else {
       const res = await fetch(chatUrl, {
         body: JSON.stringify(body),

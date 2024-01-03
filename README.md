@@ -34,7 +34,7 @@ import OpenAi from "@ramlan442/openai";
 
 - [ ] Chat Completions
   - [x] Stream
-  - [ ] Function Call
+  - [x] Function Call
   - [ ] Vision
   - [ ] Split Text on Stream
   - [ ] Support Custom Domain, Body, etc..

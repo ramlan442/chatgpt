@@ -1,3 +1,4 @@
 .eslintrc.js
 dist
 test
+jest.config.js
