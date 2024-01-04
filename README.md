@@ -73,6 +73,16 @@ import OpenAi from "@ramlan442/openai";
     },
   );
   console.log(chat.text);
+  //end
+
+
+  // convert audio to text
+  const transcribe = await openai.transcribe(
+    // audio buffer
+    fs.readFileSync(path.join(__dirname, "test.mp3")),
+  );
+  console.log(transcribe);
+  //end
 })();
 ```
 
