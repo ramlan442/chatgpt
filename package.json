@@ -58,6 +58,7 @@
     "dotenv": "^16.3.1",
     "eventsource-parser": "^1.1.1",
     "form-data": "^4.0.0",
+    "node-cache": "^5.1.2",
     "openai-chat-tokens": "github:ramlan442/openai-chat-tokens"
   }
 }

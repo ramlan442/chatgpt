@@ -1,8 +1,10 @@
 import FormData from "form-data";
 import axios from "axios";
 import { promptTokensEstimate } from "openai-chat-tokens";
+import { randomUUID } from "crypto";
 import type OpenAI from "openai";
-import { ErrorMessage, fetchSSE } from "./utils";
+import type { ChatResponse, FunctionOpenAI } from "./types";
+import { ErrorMessage, buildMessage, fetchSSE } from "./utils";
 import "dotenv/config";
 
 class OpenAi {
@@ -31,33 +33,42 @@ class OpenAi {
   }
 
   async chatCompletions(
-    text: string,
-    {
+    text: string | null,
+    opts: {
+      headers?: any;
+      model?: OpenAI.Chat.ChatCompletionCreateParams["model"];
+      endpoint?: string;
+      parentMessageId?: string;
+      customMessage?: OpenAI.Chat.ChatCompletionMessageParam[];
+      chatMessageId?: string;
+      tools?: Array<FunctionOpenAI>;
+      onMessage?: (data: any) => void;
+    } = {},
+  ): Promise<ChatResponse> {
+    const {
       headers,
       model,
       endpoint,
       onMessage,
       tools,
-    }: {
-      headers?: any;
-      model?: OpenAI.Chat.ChatCompletionCreateParams["model"];
-      endpoint?: string;
-      tools?: Array<OpenAI.ChatCompletionTool>;
-      onMessage?: (data: any) => void;
-    } = {},
-  ): Promise<OpenAI.ChatCompletion> {
+      chatMessageId,
+      customMessage,
+      parentMessageId,
+    } = opts;
     const chatUrl = endpoint || `${this.BASE_URL}/v1/chat/completions`;
     const useStream = !!onMessage;
-    const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
-      {
-        role: "system",
-        content: this.SYSTEM_MESSAGE,
-      },
-      {
-        role: "user",
-        content: text,
-      },
-    ];
+    const { messages, saveMessage, id } = buildMessage(
+      parentMessageId || randomUUID(),
+      text
+        ? [
+            {
+              role: "user",
+              content: text,
+            },
+          ]
+        : null,
+      { systemMessage: this.SYSTEM_MESSAGE, msgId: chatMessageId },
+    );
 
     this.PROMPT_TOKEN = promptTokensEstimate({ messages, tools });
 
@@ -66,48 +77,121 @@ class OpenAi {
       Math.min(
         this.PROMPT_TOKEN < this.MAX_TOKEN
           ? this.MAX_TOKEN - this.PROMPT_TOKEN
-          : 1000,
+          : this.PROMPT_TOKEN - this.MAX_TOKEN,
         this.MAX_TOKEN,
       ),
     );
 
-    let response: OpenAI.ChatCompletion;
     const body: OpenAI.ChatCompletionCreateParams = {
       messages,
       model: model || this.CHATGPT_MODEL,
       max_tokens: MAX_TOKENS,
-      tools,
+      tools: tools
+        ? tools.map((v) => ({
+            ...v,
+            function: { ...v.function, path: undefined },
+          }))
+        : undefined,
       stream: useStream,
     };
 
-    if (useStream) {
-      await fetchSSE(chatUrl, {
-        onMessage: (d) => onMessage?.(d),
-        body: JSON.stringify(body),
-        method: "POST",
-        headers: headers || this.DEFAULT_HEADERS,
-      });
-      response = "" as any;
-    } else {
-      const res = await fetch(chatUrl, {
-        body: JSON.stringify(body),
-        method: "POST",
-        headers: headers || this.DEFAULT_HEADERS,
-      });
+    const chatMessageResponse = await new Promise<ChatResponse>(
+      (resolve, reject) => {
+        let response: ChatResponse;
 
-      if (!res.ok) {
-        const reason = await res.text();
-        const msg = `OpenAI error ${res.status || res.statusText}: ${reason}`;
-        const error = new ErrorMessage(msg);
-        error.statusCode = res.status;
-        error.statusText = res.statusText;
-        throw error;
+        if (useStream) {
+          fetchSSE(chatUrl, {
+            onMessage: (data) => {
+              if (data === "[DONE]") {
+                return;
+              }
+              try {
+                const res: OpenAI.ChatCompletionChunk = JSON.parse(data);
+                if (res.id) response.id = res.id;
+
+                if (res.choices?.length) {
+                  const { delta } = res.choices[0];
+                  if (delta?.content) response.text += delta.content;
+                }
+              } catch (err) {
+                console.warn("OpenAI stream SEE event unexpected error", err);
+                reject(err);
+              }
+            },
+            body: JSON.stringify(body),
+            method: "POST",
+            headers: headers || this.DEFAULT_HEADERS,
+            onFinish: () => {
+              response.id = id;
+              resolve(response);
+            },
+            onError(error) {
+              reject(error);
+            },
+          }).catch(reject);
+        } else {
+          fetch(chatUrl, {
+            body: JSON.stringify(body),
+            method: "POST",
+            headers: headers || this.DEFAULT_HEADERS,
+          }).then((res) => {
+            if (!res.ok) {
+              res
+                .text()
+                .then((reason) => {
+                  const msg = `OpenAI error ${
+                    res.status || res.statusText
+                  }: ${reason}`;
+                  const error = new ErrorMessage(msg);
+                  error.statusCode = res.status;
+                  error.statusText = res.statusText;
+                  reject(error);
+                })
+                .catch(reject);
+            }
+
+            res
+              .json()
+              .then((v) => resolve(v))
+              .catch((v) => reject(v));
+          });
+        }
+      },
+    );
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    const { content, role, tool_calls } =
+      chatMessageResponse.choices[0].message;
+    chatMessageResponse.id = id;
+    chatMessageResponse.text = content;
+    saveMessage({
+      id: randomUUID(),
+      role,
+      content,
+      tool_calls,
+    });
+
+    if (tool_calls) {
+      for (const tool of tool_calls) {
+        const {
+          function: { arguments: arg, name },
+          id: idTool,
+        } = tool;
+        const fn = tools?.find((v) => v.function.name === name);
+        if (fn) {
+          const fnc = require(fn.function.path);
+
+          saveMessage({
+            tool_call_id: idTool,
+            id: randomUUID(),
+            role: "tool",
+            content: await fnc[fn.function.name](JSON.parse(arg)),
+          });
+        }
       }
-
-      response = await res.json();
+      return this.chatCompletions(null, { ...opts, parentMessageId: id });
     }
 
-    return response;
+    return chatMessageResponse;
   }
 
   async transcribe(
