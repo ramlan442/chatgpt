@@ -17,17 +17,91 @@ library to use api from openai in nodejs
 
 for a complete example can check in test/example.ts
 
-```javascript
+```typescript
 import OpenAi from "@ramlan442/openai";
 
 (async () => {
   const openai = new OpenAi({ key: process.env.OPENAI_KEY });
-  // const chatStream = await openai.chatCompletions("halo", {
-  //   onMessage: (data) => console.log(data),
-  // });
-  const chat = await openai.chatCompletions("halo", {});
+
+  // new chat
+  const chat = await openai.chatCompletions("halo");
   console.log(chat);
+  // end
+
+  // continue conversation
+  let chat = await openai.chatCompletions("my name is ramlan");
+  console.log(chat.text);
+
+  chat = await openai.chatCompletions("what is my name", {
+    // without passing this will make new conversation
+    parentMessageId: chat.id,
+  });
+  console.log(chat.text);
+  // end
+
+  // function call
+  // load all func file, for template you can see in section func template
+  // locate should in same folder
+  const funcsDir = path.join(__dirname, "func");
+  const funcs = fs.readdirSync(funcsDir);
+  const tool_funcs: FunctionOpenAI[] = [];
+  if (funcs.length > 0) {
+    funcs.forEach((v) => {
+      const funcFile = path.join(funcsDir, v);
+      const { default: func } = require(funcFile);
+      tool_funcs.push(func);
+    });
+
+  let chat = await openai.chatCompletions("nama aku adalah ramlan", {
+    tools: tool_funcs,
+  });
+  console.log(chat.text);
+
+  chat = await openai.chatCompletions("tanggal lahirku 04 april 2000", {
+    tools: tool_funcs,
+    // without passing this will make new conversation
+    parentMessageId: chat.id,
+  });
+  console.log(chat.text);
+
+  chat = await openai.chatCompletions(
+    "siapa namaku dan kapan tanggal lahirku?",
+    {
+      tools: tool_funcs,
+      // without passing this will make new conversation
+      parentMessageId: chat.id,
+    },
+  );
+  console.log(chat.text);
 })();
+```
+
+## Function Template
+
+for a complete example can check in test/func
+
+```typescript
+import type { FunctionOpenAI } from "@ramlan442/openai/types";
+
+// this main function
+export const getUserBirth = ({ day }: any) => `tanggal ${day}`;
+
+// this for information function
+export default {
+  function: {
+    name: "getUserBirth",
+    description: "get user birth",
+    parameters: {
+      type: "object",
+      properties: {
+        day: { type: "string", description: "day of birth user" },
+      },
+      required: ["day"],
+    },
+    path: __filename,
+  },
+  type: "function",
+} as FunctionOpenAI;
 ```
 
 ## TODO
