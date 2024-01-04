@@ -122,7 +122,7 @@ export default {
   - [ ] Vision
   - [x] Split Text on Stream
   - [ ] Support Custom Domain, Body, etc..
-  - [ ] Previous Chat (continue conversation)
+  - [x] Previous Chat (continue conversation)
 - [x] Transcribe (convert audio to text)
 - [ ] text to speech
 
