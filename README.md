@@ -120,7 +120,7 @@ export default {
   - [x] Stream
   - [x] Function Call
   - [ ] Vision
-  - [ ] Split Text on Stream
+  - [x] Split Text on Stream
   - [ ] Support Custom Domain, Body, etc..
   - [ ] Previous Chat (continue conversation)
 - [x] Transcribe (convert audio to text)

@@ -1,6 +1,6 @@
 {
   "name": "@ramlan442/openai",
-  "version": "1.0.0-preview5",
+  "version": "1.0.0-preview6",
   "description": "openai api, chatgpt api",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -14,7 +14,6 @@
     "build": "tsc",
     "example": "ts-node test/example.ts"
   },
-  "type": "module",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ramlan442/openai.git"

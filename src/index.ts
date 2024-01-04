@@ -39,7 +39,6 @@ class OpenAi {
       model?: OpenAI.Chat.ChatCompletionCreateParams["model"];
       endpoint?: string;
       parentMessageId?: string;
-      customMessage?: OpenAI.Chat.ChatCompletionMessageParam[];
       chatMessageId?: string;
       tools?: Array<FunctionOpenAI>;
       onMessage?: (data: any) => void;
@@ -52,7 +51,6 @@ class OpenAi {
       onMessage,
       tools,
       chatMessageId,
-      customMessage,
       parentMessageId,
     } = opts;
     const chatUrl = endpoint || `${this.BASE_URL}/v1/chat/completions`;
@@ -97,21 +95,85 @@ class OpenAi {
 
     const chatMessageResponse = await new Promise<ChatResponse>(
       (resolve, reject) => {
-        let response: ChatResponse;
+        const response: ChatResponse = {} as any;
 
         if (useStream) {
+          let prevIndex = 0;
+          let nextIndex = 100;
           fetchSSE(chatUrl, {
             onMessage: (data) => {
               if (data === "[DONE]") {
+                if (response.choices[0].message.content) {
+                  onMessage(
+                    response.choices[0].message.content.slice(
+                      prevIndex,
+                      nextIndex,
+                    ),
+                  );
+                }
+                resolve(response);
                 return;
               }
               try {
                 const res: OpenAI.ChatCompletionChunk = JSON.parse(data);
-                if (res.id) response.id = res.id;
+                response.id = id;
+                if (res.created) response.created = res.created;
+                if (res.model) response.model = res.model;
 
                 if (res.choices?.length) {
-                  const { delta } = res.choices[0];
-                  if (delta?.content) response.text += delta.content;
+                  // eslint-disable-next-line @typescript-eslint/naming-convention
+                  const { delta, finish_reason, index, logprobs } =
+                    res.choices[0];
+                  if (!response.choices) {
+                    response.choices = [
+                      {
+                        message: {
+                          content: "",
+                          role: "assistant",
+                        },
+                        finish_reason: finish_reason as any,
+                        index,
+                        logprobs: logprobs as any,
+                      },
+                    ];
+                  }
+                  if (delta?.content) {
+                    const { content } = delta;
+                    response.choices[0].message.content += content;
+                    const tt = response.choices[0].message.content!;
+                    if (tt!.length > nextIndex) {
+                      const textSlice = tt.slice(prevIndex, nextIndex);
+                      prevIndex = nextIndex;
+                      nextIndex += 100;
+                      onMessage(textSlice);
+                    }
+                    // onMessage(tt);
+                  }
+                  if (delta.tool_calls) {
+                    if (!response.choices[0].message.tool_calls) {
+                      response.choices[0].message.tool_calls =
+                        delta.tool_calls as any;
+                    }
+
+                    const rtol = response.choices[0].message.tool_calls;
+                    let responseTool: OpenAI.ChatCompletionChunk.Choice.Delta.ToolCall =
+                      rtol![rtol!.length - 1] as any;
+                    const resTool = delta.tool_calls[0];
+
+                    if (responseTool.index !== resTool.index) {
+                      response.choices[0].message.tool_calls!.push(
+                        resTool as any,
+                      );
+                      responseTool = rtol![rtol!.length - 1] as any;
+                    }
+
+                    responseTool.function!.arguments +=
+                      resTool.function!.arguments!;
+                  }
+                  if (finish_reason)
+                    response.choices[0].finish_reason = finish_reason;
+                  if (index) response.choices[0].index = index;
+                  if (logprobs) response.choices[0].logprobs = logprobs;
                 }
               } catch (err) {
                 console.warn("OpenAI stream SEE event unexpected error", err);
@@ -171,6 +233,7 @@ class OpenAi {
     });
 
     if (tool_calls) {
+      // eslint-disable-next-line no-restricted-syntax
       for (const tool of tool_calls) {
         const {
           function: { arguments: arg, name },
@@ -178,12 +241,14 @@ class OpenAi {
         } = tool;
         const fn = tools?.find((v) => v.function.name === name);
         if (fn) {
+          // eslint-disable-next-line import/no-dynamic-require, global-require
           const fnc = require(fn.function.path);
 
           saveMessage({
             tool_call_id: idTool,
             id: randomUUID(),
             role: "tool",
+            // eslint-disable-next-line no-await-in-loop
             content: await fnc[fn.function.name](JSON.parse(arg)),
           });
         }
