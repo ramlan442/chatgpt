@@ -23,22 +23,45 @@ import OpenAi from "@ramlan442/openai";
 (async () => {
   const openai = new OpenAi({ key: process.env.OPENAI_KEY });
 
-  // new chat
-  const chat = await openai.chatCompletions("halo");
-  console.log(chat);
-  // end
-
-  // continue conversation
   let chat = await openai.chatCompletions("my name is ramlan");
   console.log(chat.text);
 
   chat = await openai.chatCompletions("what is my name", {
-    // without passing this will make new conversation
-    parentMessageId: chat.id,
+    parentMessageId: chat.id, // without passing this will make new conversation
   });
   console.log(chat.text);
   // end
+})();
+```
 
+### stream mode
+
+```typescript
+import OpenAi from "@ramlan442/openai";
+
+(async () => {
+  const openai = new OpenAi({ key: process.env.OPENAI_KEY });
+
+  let chat = await openai.chatCompletions("my name is ramlan",
+    onMessage: (text) => {
+      console.log(text)
+    }
+  );
+
+  chat = await openai.chatCompletions("what is my name", {
+    onMessage: (text) => {
+      console.log(text)
+    },
+    parentMessageId: chat.id, // without passing this will make new conversation
+  });
+})();
+```
+
+### With Function Call
+
+```typescript
+(async () => {
+  const openai = new OpenAi({ key: process.env.OPENAI_KEY });
   // function call
   // load all func file, for template you can see in section func template
   // locate should in same folder
@@ -51,42 +74,31 @@ import OpenAi from "@ramlan442/openai";
       const { default: func } = require(funcFile);
       tool_funcs.push(func);
     });
+  }
 
-  let chat = await openai.chatCompletions("nama aku adalah ramlan", {
+  let chat = await openai.chatCompletions("may name is ramlan", {
     tools: tool_funcs,
   });
   console.log(chat.text);
 
-  chat = await openai.chatCompletions("tanggal lahirku 04 april 2000", {
+  chat = await openai.chatCompletions("my birthday is 04 april 2000", {
     tools: tool_funcs,
-    // without passing this will make new conversation
-    parentMessageId: chat.id,
+    parentMessageId: chat.id, // without passing this will make new conversation
   });
   console.log(chat.text);
 
   chat = await openai.chatCompletions(
-    "siapa namaku dan kapan tanggal lahirku?",
+    "my name is ramlan and when my birthday?",
     {
       tools: tool_funcs,
-      // without passing this will make new conversation
-      parentMessageId: chat.id,
+      parentMessageId: chat.id, // without passing this will make new conversation
     },
   );
   console.log(chat.text);
-  //end
-
-
-  // convert audio to text
-  const transcribe = await openai.transcribe(
-    // audio buffer
-    fs.readFileSync(path.join(__dirname, "test.mp3")),
-  );
-  console.log(transcribe);
-  //end
 })();
 ```
 
-## Function Template
+### Function Template
 
 for a complete example can check in test/func
 
@@ -99,7 +111,7 @@ export const getUserBirth = ({ day }: any) => `tanggal ${day}`;
 // this for information function
 export default {
   function: {
-    name: "getUserBirth",
+    name: "getUserBirth", // <-- name should same with main function
     description: "get user birth",
     parameters: {
       type: "object",
@@ -112,6 +124,22 @@ export default {
   },
   type: "function",
 } as FunctionOpenAI;
+```
+
+### transcribe
+
+```typescript
+import OpenAi from "@ramlan442/openai";
+
+(async () => {
+  const openai = new OpenAi({ key: process.env.OPENAI_KEY });
+
+  const transcribe = await openai.transcribe(
+    // audio buffer
+    fs.readFileSync(path.join(__dirname, "test.mp3")),
+  );
+  console.log(transcribe);
+})();
 ```
 
 ## TODO
